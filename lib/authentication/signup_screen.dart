@@ -1,4 +1,3 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
@@ -89,7 +88,7 @@ class _signUpScreenState extends State<signUpScreen>
     };
     usersRef.set(userDataMap);
 
-    Navigator.push(context, MaterialPageRoute(builder: (c)=> homePage()));
+    Navigator.push(context, MaterialPageRoute(builder: (c)=> const homePage()));
   }
 
   @override
@@ -108,7 +107,7 @@ class _signUpScreenState extends State<signUpScreen>
                 ),
       
                 const Text(
-                  "Create a User\'s Account",
+                  "Create a User's Account",
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
@@ -214,7 +213,7 @@ class _signUpScreenState extends State<signUpScreen>
                 TextButton(
                   onPressed: ()
                   {
-                    Navigator.push(context, MaterialPageRoute(builder: (c)=> loginScreen()));
+                    Navigator.push(context, MaterialPageRoute(builder: (c)=> const loginScreen()));
                   },
                   child: const Text(
                     "Already have an Account? Login Here",

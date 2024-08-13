@@ -1,15 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:uber_app_clone/app_info/app_info.dart';
 import 'package:uber_app_clone/authentication/login_screen.dart';
 import 'package:uber_app_clone/global/global_variables.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:uber_app_clone/models/direction_details_model.dart';
 import 'package:uber_app_clone/pages/search_destination_page.dart';
+import 'package:uber_app_clone/widgets/loading_dialog.dart';
 
 import '../methods/common_methods.dart';
 
@@ -35,6 +38,8 @@ class _homePageState extends State<homePage>
   CommonMethods cMethods = CommonMethods();
   double searchContainerHeight = 276;
   double bottomMapPadding = 0;
+  double rideDetailsContainer = 0;
+  DirectionDetailsModel? tripDirectionDetailsinfo;
 
   /// styling map design
   void updateMapTheme(GoogleMapController controller) {
@@ -63,6 +68,9 @@ class _homePageState extends State<homePage>
 
     CameraPosition cameraPosition = CameraPosition(target: positionOfUserInLatLng, zoom: 15);
     controllerGoogleMap!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+
+    /// human readable address
+    await CommonMethods.convertGeoGraphicsCoordinatesIntoHumanReadableAddress(currentPositionOfUser!, context);
 
     await getUserInfoAndCheckBlockStatus();
   }
@@ -96,6 +104,44 @@ class _homePageState extends State<homePage>
         cMethods.displaySnackBar("your record do not exists as a User.", context);
       }
     });
+
+  }
+
+
+  /// this displays the ride details after user inputs his drop location from the search screen
+  displayUserRideDetailsContainer() async{
+
+    await retrieveDirectionDetails();
+
+    setState(() {
+      searchContainerHeight = 0;
+      bottomMapPadding = 240;
+      rideDetailsContainer = 242;
+    });
+
+  }
+
+  retrieveDirectionDetails() async {
+
+    var pickUpLocation = Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+    var dropOffDestinationLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+
+
+    var pickUpGeographicCoOrdinate = LatLng(pickUpLocation!.latitudePosition!, pickUpLocation.longitudePosition!);
+    var dropOffGeographicCoOrdinate = LatLng(dropOffDestinationLocation!.latitudePosition!, dropOffDestinationLocation.longitudePosition!);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => loadingDialog(messageText: "Getting details...",)
+    );
+
+    var detailsFromDirectionAPI = await CommonMethods.getDirectionsFromApi(pickUpGeographicCoOrdinate, dropOffGeographicCoOrdinate);
+
+    setState(() {
+      tripDirectionDetailsinfo = detailsFromDirectionAPI;
+    });
+
 
   }
 
@@ -149,7 +195,7 @@ class _homePageState extends State<homePage>
                         children: [
 
                           Text(
-                              userName + " Nsofor",
+                              "$userName Nsofor",
                             style: const TextStyle(
                               fontSize: 16,
                               color: Colors.grey,
@@ -263,14 +309,26 @@ class _homePageState extends State<homePage>
             left: 0,
             right: 0,
             bottom: -80,
-            child: Container(
+            child: SizedBox(
               height: searchContainerHeight,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   ElevatedButton(
-                    onPressed: (){
-                      Navigator.push(context, MaterialPageRoute(builder: (c)=> const searchDestinationPage()));
+                    onPressed: () async {
+                      /// waits for the response whenever the dropOff location is passed
+                      var responseFromSearchPage = await Navigator.push(context, MaterialPageRoute(builder: (c)=> const searchDestinationPage()));
+
+                      if(responseFromSearchPage == "placeSelected") {
+
+                        /// prints the location out for us
+                        // String dropOffLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation!.placeName ?? "";
+                        // print(dropOffLocation + "This is your drop offff");
+
+                        displayUserRideDetailsContainer();
+
+                      }
+
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
@@ -313,6 +371,108 @@ class _homePageState extends State<homePage>
               ),
             ),
           ),
+
+
+          /// ride details container
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              height: rideDetailsContainer,
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.yellow,
+                    blurRadius: 15.0,
+                    spreadRadius: 0.5,
+                    offset: Offset(.7, .7),
+                  )
+                ],
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 18),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+
+                    Padding(
+                      padding: EdgeInsets.only(left: 16, right: 16),
+                      child: SizedBox(
+                        height: 200,
+                        child: Card(
+                          elevation: 10,
+                          child: Container(
+                            width: MediaQuery.of(context).size.width * .70,
+                            color: Colors.blue,
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 8, bottom: 8),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          (tripDirectionDetailsinfo != null) ? tripDirectionDetailsinfo!.distanceTextString! : "",
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.yellow,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+
+                                        Text(
+                                          (tripDirectionDetailsinfo != null) ? tripDirectionDetailsinfo!.durationTextString! : "",
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.yellow,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+
+                                      ],
+                                    ),
+                                  ),
+
+                                  GestureDetector(
+                                    onTap: (){},
+                                    child: Image.asset(
+                                      "assets/uberexec.png",
+                                      height: 122,
+                                      width: 122,
+                                    ),
+                                  ),
+
+                                  /// called cMethod and passed the model into it here to calculate price
+                                  Text(
+                                    (tripDirectionDetailsinfo != null) ? "\$ ${(cMethods.calculateFareAmount(tripDirectionDetailsinfo!)).toString()}" : "",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.yellow,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          ),
+
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+
+              ),
+            ),
+          )
 
         ],
       ),

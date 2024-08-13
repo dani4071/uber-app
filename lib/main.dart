@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:uber_app_clone/app_info/app_info.dart';
 import 'package:uber_app_clone/authentication/login_screen.dart';
 import 'package:uber_app_clone/pages/home_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 
 Future <void> main() async {
 
@@ -28,12 +30,16 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: Colors.white,
+    return ChangeNotifierProvider(
+      create: (context) => AppInfo(),
+      child: MaterialApp(
+        title: 'User App',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData.dark().copyWith(
+          scaffoldBackgroundColor: Colors.white,
+        ),
+        home: FirebaseAuth.instance.currentUser == null ? const loginScreen() : const homePage(),
       ),
-      home: FirebaseAuth.instance.currentUser == null ? loginScreen() : homePage(),
     );
   }
 }

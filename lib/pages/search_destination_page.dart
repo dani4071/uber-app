@@ -1,7 +1,11 @@
-import 'dart:ui';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+import 'package:provider/provider.dart';
+import 'package:uber_app_clone/app_info/app_info.dart';
+import 'package:uber_app_clone/global/global_variables.dart';
+import 'package:uber_app_clone/methods/common_methods.dart';
+import 'package:uber_app_clone/models/prediction_model.dart';
+import 'package:uber_app_clone/widgets/loading_dialog.dart';
+import 'package:uber_app_clone/widgets/prediction_place_ui.dart';
 
 
 class searchDestinationPage extends StatefulWidget {
@@ -15,15 +19,51 @@ class _searchDestinationPageState extends State<searchDestinationPage> {
 
   TextEditingController pickUpTextEditingController = TextEditingController();
   TextEditingController destinationTextEditingController = TextEditingController();
+  List<PredictionModel> dropOffPredictionPlacesList = [];
+
+  /// Autocomplete Places Api
+  searchLocation(String locationName) async {
+
+    if(locationName.length > 1) {
+
+
+      String apiPlaceUrl = "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$locationName&key=$googleMapKey&components=country:ng";
+
+      var responseFromPlacesApi = await CommonMethods.sendRequestToApi(apiPlaceUrl);
+
+
+      if(responseFromPlacesApi == 'error') {
+        return;
+      }
+
+      if(responseFromPlacesApi["status"] == "OK") {
+
+        var predictionResultInJson = responseFromPlacesApi["predictions"];
+
+        var predictionList = (predictionResultInJson as List).map((eachPlacePrediction) => PredictionModel.fromJson(eachPlacePrediction)).toList();
+
+        setState(() {
+          dropOffPredictionPlacesList = predictionList;
+        });
+      }
+
+    }
+  }
 
 
   @override
   Widget build(BuildContext context) {
+
+    String userAddress = Provider.of<AppInfo>(context, listen: false).pickUpLocation!.humanReadableAddress ?? "";
+    pickUpTextEditingController.text = userAddress;
+
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: SingleChildScrollView(
         child: Column(
           children: [
+
             Card(
               elevation: 10,
               margin: EdgeInsets.zero,
@@ -132,6 +172,9 @@ class _searchDestinationPageState extends State<searchDestinationPage> {
                                 padding: const EdgeInsets.all(3),
                                 child: TextField(
                                   controller: destinationTextEditingController,
+                                  onChanged: (inputText) {
+                                    searchLocation(inputText);
+                                  },
                                   decoration: const InputDecoration(
                                       hintText: "Destination Address",
                                       fillColor: Colors.grey,
@@ -154,6 +197,26 @@ class _searchDestinationPageState extends State<searchDestinationPage> {
                 ),
               ),
             ),
+
+            /// display prediction result from Places API
+            (dropOffPredictionPlacesList.isNotEmpty)
+                ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ListView.separated(
+                    padding: EdgeInsets.zero,
+                    itemBuilder: (context, index) {
+                      return Card(
+                        elevation: 3,
+                        child: predictionPlaceUi(predictionPlaceData: dropOffPredictionPlacesList[index],),
+                      );
+                    },
+                    separatorBuilder: (BuildContext context, int index) => const SizedBox(height: 2,),
+                    itemCount: dropOffPredictionPlacesList.length,
+                    shrinkWrap: true,
+                    physics: const ClampingScrollPhysics(),
+                  ),
+            )
+                : Container()
           ],
         ),
       ),
