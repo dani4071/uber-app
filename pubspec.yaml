@@ -63,6 +63,7 @@ dev_dependencies:
   geolocator:
   provider:
   flutter_polyline_points:
+  loading_animation_widget:
 
 
 

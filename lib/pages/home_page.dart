@@ -10,12 +10,13 @@ import 'package:uber_app_clone/global/global_variables.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:uber_app_clone/global/trip_var.dart';
 import 'package:uber_app_clone/models/direction_details_model.dart';
 import 'package:uber_app_clone/pages/search_destination_page.dart';
 import 'package:uber_app_clone/widgets/loading_dialog.dart';
-
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import '../methods/common_methods.dart';
-
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 
 class homePage extends StatefulWidget
@@ -38,8 +39,17 @@ class _homePageState extends State<homePage>
   CommonMethods cMethods = CommonMethods();
   double searchContainerHeight = 276;
   double bottomMapPadding = 0;
-  double rideDetailsContainer = 0;
+  double rideDetailsContainerHeight = 0;
+  double requestContainerHeight = 0;
+  double tripContainerHeight = 0;
   DirectionDetailsModel? tripDirectionDetailsinfo;
+  List<LatLng> polylineCoOrdinates = [];
+  /// a set is an unordered collection of unique items
+  Set<Polyline> polylineSet = {};
+  Set<Marker> markerSet = {};
+  Set<Circle> circleSet = {};
+  bool isDrawerOpen = true;
+  String stateOfApp = "normal";
 
   /// styling map design
   void updateMapTheme(GoogleMapController controller) {
@@ -55,7 +65,7 @@ class _homePageState extends State<homePage>
   setGoogleMapStyle(String googleMapStyle, GoogleMapController controller) {
     controller.setMapStyle(googleMapStyle);
   }
-  ///
+  /// ///////////////////////////////////////
 
 
   /// Getting user current Location
@@ -116,11 +126,14 @@ class _homePageState extends State<homePage>
     setState(() {
       searchContainerHeight = 0;
       bottomMapPadding = 240;
-      rideDetailsContainer = 242;
+      rideDetailsContainerHeight = 242;
+      isDrawerOpen = false;
     });
 
   }
 
+  /// this is called above
+  ///  responsible for retrieving directions to drop off location and also the polylines and circles on the map
   retrieveDirectionDetails() async {
 
     var pickUpLocation = Provider.of<AppInfo>(context, listen: false).pickUpLocation;
@@ -142,8 +155,168 @@ class _homePageState extends State<homePage>
       tripDirectionDetailsinfo = detailsFromDirectionAPI;
     });
 
+    Navigator.pop(context);
+
+
+    /// this below is very easy, dont get overwhelmed, the commets explains it all
+
+
+    /// this is responsible for drawing lines on the map, polylines
+    PolylinePoints pointsPolyline = PolylinePoints();
+    List<PointLatLng> latLngPointsFromPickToDestination = pointsPolyline.decodePolyline(tripDirectionDetailsinfo!.encodedPoints!);
+
+    // draw route from pickUp to drop off Destination
+    /// making sure theres nothing on it at the moment
+    polylineCoOrdinates.clear();
+    /// this polyline points is a like a lot of latlng coordinates, so that the map would trace along those line
+    /// over here we get the latlngs' and add it to our list of polylineCoOrdinate one by one.
+    /// video 75 -1:03 would explain more on polylines
+    if(latLngPointsFromPickToDestination.isNotEmpty){
+      latLngPointsFromPickToDestination.forEach((PointLatLng latlngPoint){
+        polylineCoOrdinates.add(LatLng(latlngPoint.latitude, latlngPoint.longitude));
+      });
+    }
+
+    polylineSet.clear();
+    setState(() {
+      Polyline polyline = Polyline(
+        polylineId: PolylineId("polylineID"),
+        color: Colors.pink,
+        points: polylineCoOrdinates,
+        jointType: JointType.round,
+        width: 4,
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+        geodesic: true,
+      );
+      polylineSet.add(polyline);
+    });
+
+    // fit polyline into map
+    /// make the polyline fit into the map ie those lines to fit in the roads and not become too large when you zoom
+    LatLngBounds boundsLatlng;
+    if(pickUpGeographicCoOrdinate.latitude > dropOffGeographicCoOrdinate.latitude && pickUpGeographicCoOrdinate.longitude > dropOffGeographicCoOrdinate.longitude){
+      boundsLatlng = LatLngBounds(
+          southwest: dropOffGeographicCoOrdinate,
+          northeast: pickUpGeographicCoOrdinate
+      );
+    }
+    else if(pickUpGeographicCoOrdinate.longitude > dropOffGeographicCoOrdinate.longitude) {
+      boundsLatlng = LatLngBounds(
+          southwest: LatLng(pickUpGeographicCoOrdinate.latitude, dropOffGeographicCoOrdinate.longitude),
+          northeast: LatLng(dropOffGeographicCoOrdinate.latitude, pickUpGeographicCoOrdinate.longitude)
+      );
+    }
+    else if(pickUpGeographicCoOrdinate.latitude > dropOffGeographicCoOrdinate.latitude){
+      boundsLatlng = LatLngBounds(
+          southwest: LatLng(dropOffGeographicCoOrdinate.latitude, pickUpGeographicCoOrdinate.longitude),
+          northeast: LatLng(pickUpGeographicCoOrdinate.latitude, dropOffGeographicCoOrdinate.longitude),
+      );
+    }
+
+    else {
+      boundsLatlng = LatLngBounds(
+          southwest: pickUpGeographicCoOrdinate,
+          northeast: dropOffGeographicCoOrdinate,
+      );
+    }
+
+    controllerGoogleMap!.animateCamera(CameraUpdate.newLatLngBounds(boundsLatlng, 72));
+
+    /// add marker to pickup and dropOffdestination
+    Marker pickUpPointMaker = Marker(
+      markerId: const MarkerId("pickUpPointMakerID"),
+      position: pickUpGeographicCoOrdinate,
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+      infoWindow: InfoWindow(title: pickUpLocation.placeName, snippet: "Pickup Location"),
+    );
+
+
+    Marker dropOffDestinationPointMaker = Marker(
+      markerId: const MarkerId("dropOffDestinationPointMakerID"),
+      position: dropOffGeographicCoOrdinate,
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
+      infoWindow: InfoWindow(title: dropOffDestinationLocation.placeName, snippet: "Destination Location"),
+    );
+
+
+    setState(() {
+      markerSet.add(pickUpPointMaker);
+      markerSet.add(dropOffDestinationPointMaker);
+    });
+
+    /// add circle to pickup and dropOffdestination
+    Circle pickUpPointCircle = Circle(
+      circleId: const CircleId("pickUpPointCircleID"),
+      strokeColor: Colors.blue,
+      strokeWidth: 4,
+      radius: 14,
+      center: pickUpGeographicCoOrdinate,
+      fillColor: Colors.pink
+    );
+
+
+    Circle dropOffDestinationPointCircle = Circle(
+        circleId: const CircleId("dropOffDestinationPointCircleID"),
+        strokeColor: Colors.blue,
+        strokeWidth: 4,
+        radius: 14,
+        center: dropOffGeographicCoOrdinate,
+        fillColor: Colors.green
+    );
+
+    setState(() {
+      circleSet.add(pickUpPointCircle);
+      circleSet.add(dropOffDestinationPointCircle);
+    });
 
   }
+
+  /// ///////////////////
+
+
+  resetApp() {
+    setState(() {
+
+      polylineCoOrdinates.clear();
+      polylineSet.clear();
+      markerSet.clear();
+      circleSet.clear();
+      rideDetailsContainerHeight = 0;
+      tripContainerHeight = 0;
+      requestContainerHeight = 0;
+      searchContainerHeight = 276;
+      bottomMapPadding = 300;
+      isDrawerOpen = true;
+
+
+      status = "";
+      nameDriver = "";
+      photoDriver = "";
+      phoneNumberDriver = "";
+      carDetailsDriver = "";
+      tripStatusDisplay = "Driver is Arriving";
+    });
+  }
+
+  displayRequestContainer() {
+
+    setState(() {
+      rideDetailsContainerHeight = 0;
+      requestContainerHeight = 242;
+      bottomMapPadding = 200;
+      isDrawerOpen = true;
+    });
+
+    // send ride request
+  }
+
+  cancelRideRequest() {
+    setState(() {
+      stateOfApp = "normal";
+    });
+  }
+
 
 
   @override
@@ -257,6 +430,9 @@ class _homePageState extends State<homePage>
             padding: EdgeInsets.only(top: 30, bottom: bottomMapPadding),
             mapType: MapType.normal,
             myLocationEnabled: true,
+            polylines: polylineSet,
+            markers: markerSet,
+            circles: circleSet,
             initialCameraPosition: googlePlexInitialPlex,
             onMapCreated: (GoogleMapController mapController) {
 
@@ -280,25 +456,32 @@ class _homePageState extends State<homePage>
             left: 10,
             child: GestureDetector(
               onTap: (){
-                sKey.currentState!.openDrawer();
+                if(isDrawerOpen == true) {
+
+                  sKey.currentState!.openDrawer();
+
+                } else {
+                  resetApp();
+                }
+
               },
               child: Container(
                 height: 40,
                 width: 40,
                 decoration: BoxDecoration(
-                  color: Colors.grey,
+                  color: isDrawerOpen ? Colors.grey : Colors.red,
                   borderRadius: BorderRadius.circular(100),
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Colors.white,
+                      color: isDrawerOpen ? Colors.white : Colors.red,
                       blurRadius: 2,
                       spreadRadius: 0.5,
                     )
                   ]
                 ),
-                child: const Icon(
-                  Icons.menu,
-                  color: Colors.black,
+                child: Icon(
+                  isDrawerOpen ? Icons.menu : Icons.close,
+                  color:  Colors.black,
                 ),
               ),
             ),
@@ -379,7 +562,7 @@ class _homePageState extends State<homePage>
             right: 0,
             bottom: 0,
             child: Container(
-              height: rideDetailsContainer,
+              height: rideDetailsContainerHeight,
               decoration: BoxDecoration(
                 color: Colors.red,
                 borderRadius: BorderRadius.circular(20),
@@ -441,7 +624,17 @@ class _homePageState extends State<homePage>
                                   ),
 
                                   GestureDetector(
-                                    onTap: (){},
+                                    onTap: (){
+                                      setState(() {
+                                        stateOfApp = "requesting";
+                                      });
+
+                                      displayRequestContainer();
+
+                                      // get nearest available online driver
+
+                                      // search driver
+                                    },
                                     child: Image.asset(
                                       "assets/uberexec.png",
                                       height: 122,
@@ -471,6 +664,70 @@ class _homePageState extends State<homePage>
                 ),
 
               ),
+            ),
+          ),
+
+
+          /// request container
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              height: requestContainerHeight,
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black54,
+                    blurRadius: 15.0,
+                    spreadRadius: 0.5,
+                    offset: Offset(0.7, 0.7),
+                  ),
+                ]
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(height: 12,),
+                    SizedBox(
+                      width: 200,
+                      child: LoadingAnimationWidget.flickr(
+                        leftDotColor: Colors.greenAccent,
+                        rightDotColor: Colors.pinkAccent,
+                        size: 50,
+                      ),
+                    ),
+
+                    SizedBox(height: 20,),
+
+                    GestureDetector(
+                      onTap: (){
+                        resetApp();
+                        cancelRideRequest();
+                      },
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.white70,
+                          borderRadius: BorderRadius.circular(25),
+                          border: Border.all(width: 1.5, color: Colors.grey),
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.black,
+                          size: 25,
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+
             ),
           )
 
