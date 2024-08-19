@@ -12,11 +12,15 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uber_app_clone/global/trip_var.dart';
 import 'package:uber_app_clone/models/direction_details_model.dart';
+import 'package:uber_app_clone/models/online_nearby_drivers_model.dart';
 import 'package:uber_app_clone/pages/search_destination_page.dart';
 import 'package:uber_app_clone/widgets/loading_dialog.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import '../methods/common_methods.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:flutter_geofire/flutter_geofire.dart';
+
+import '../methods/manage_drivers_methods.dart';
 
 
 class homePage extends StatefulWidget
@@ -50,26 +54,45 @@ class _homePageState extends State<homePage>
   Set<Circle> circleSet = {};
   bool isDrawerOpen = true;
   String stateOfApp = "normal";
+  bool nearbyOnlineDriversKeysLoaded = false;
+  BitmapDescriptor? carIconNearbyDriver;
+
+
+  /// driver icon on map
+  /// this was called in the widget build so the icons load
+  makeDriverNearbyCarIcon()
+  {
+    if(carIconNearbyDriver == null) {
+      ImageConfiguration configuration = createLocalImageConfiguration(context, size: Size(0.5, 0.5));
+      BitmapDescriptor.fromAssetImage(configuration, "assets/tracking.png").then((iconImage){
+        carIconNearbyDriver = iconImage;
+      });
+    }
+  }
 
   /// styling map design
-  void updateMapTheme(GoogleMapController controller) {
+  void updateMapTheme(GoogleMapController controller)
+  {
     getJsonFromTheme("theme/map/night_style.json").then((value) => setGoogleMapStyle(value, controller));
   }
 
-  Future<String> getJsonFromTheme(String mapStylePath) async {
+  Future<String> getJsonFromTheme(String mapStylePath) async
+  {
     ByteData byteData = await rootBundle.load(mapStylePath);
     var list = byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes);
     return utf8.decode(list);
   }
 
-  setGoogleMapStyle(String googleMapStyle, GoogleMapController controller) {
+  setGoogleMapStyle(String googleMapStyle, GoogleMapController controller)
+  {
     controller.setMapStyle(googleMapStyle);
   }
   /// ///////////////////////////////////////
 
 
   /// Getting user current Location
-  getCurrentUserLocationOfUser() async {
+  getCurrentUserLocationOfUser() async
+  {
 
     Position positionOfUser = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.bestForNavigation);
     currentPositionOfUser = positionOfUser;
@@ -83,11 +106,14 @@ class _homePageState extends State<homePage>
     await CommonMethods.convertGeoGraphicsCoordinatesIntoHumanReadableAddress(currentPositionOfUser!, context);
 
     await getUserInfoAndCheckBlockStatus();
+
+    await initializeGeoFireListener();
   }
 
 
   /// checking if the user is blocked by the admin
-  getUserInfoAndCheckBlockStatus() async {
+  getUserInfoAndCheckBlockStatus() async
+  {
     DatabaseReference usersRef = FirebaseDatabase.instance.ref().child("users").child(FirebaseAuth.instance.currentUser!.uid);
 
     await usersRef.once().then((snap)
@@ -119,7 +145,8 @@ class _homePageState extends State<homePage>
 
 
   /// this displays the ride details after user inputs his drop location from the search screen
-  displayUserRideDetailsContainer() async{
+  displayUserRideDetailsContainer() async
+  {
 
     await retrieveDirectionDetails();
 
@@ -134,7 +161,8 @@ class _homePageState extends State<homePage>
 
   /// this is called above
   ///  responsible for retrieving directions to drop off location and also the polylines and circles on the map
-  retrieveDirectionDetails() async {
+  retrieveDirectionDetails() async
+  {
 
     var pickUpLocation = Provider.of<AppInfo>(context, listen: false).pickUpLocation;
     var dropOffDestinationLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation;
@@ -275,7 +303,9 @@ class _homePageState extends State<homePage>
   /// ///////////////////
 
 
-  resetApp() {
+  /// i believe this just means to clear all polylines and start again
+  resetApp()
+  {
     setState(() {
 
       polylineCoOrdinates.clear();
@@ -299,7 +329,8 @@ class _homePageState extends State<homePage>
     });
   }
 
-  displayRequestContainer() {
+  displayRequestContainer()
+  {
 
     setState(() {
       rideDetailsContainerHeight = 0;
@@ -311,18 +342,106 @@ class _homePageState extends State<homePage>
     // send ride request
   }
 
-  cancelRideRequest() {
+  cancelRideRequest()
+  {
     setState(() {
       stateOfApp = "normal";
     });
+  }
+
+  updateAvailableNearbyOnlineDriverOnMap(){
+    setState(() {
+      markerSet.clear();
+    });
+
+    Set<Marker> markersTempSet = Set<Marker>();
+
+    for(OnlineNearbyDriversModel eachOnlineNearbyDriver in manageDriverMethods.nearbyOnlineDriversList) {
+      LatLng driverCurrentPosition = LatLng(eachOnlineNearbyDriver.latDriver!, eachOnlineNearbyDriver.lngDriver!);
+
+      Marker driverMarker = Marker(
+        markerId: MarkerId("driver ID = " + eachOnlineNearbyDriver.uidDriver.toString()),
+        position: driverCurrentPosition,
+        icon: carIconNearbyDriver!,
+      );
+
+      markersTempSet.add(driverMarker);
+    }
+
+    setState(() {
+      markerSet = markersTempSet;
+    });
+  }
+
+/// SECTION[26] video 90,91,92
+  initializeGeoFireListener()
+  {
+    Geofire.initialize("onlineDrivers");
+    Geofire.queryAtLocation(currentPositionOfUser!.latitude, currentPositionOfUser!.longitude, 22)!
+        .listen((driverEvent)
+    {
+      if(driverEvent != null)
+      {
+        var onlineDriverChild = driverEvent["callBack"];
+
+        switch(onlineDriverChild)
+        {
+          /// when a driver enters within the radius of the user, remember we specified the user
+          case Geofire.onKeyEntered:
+            OnlineNearbyDriversModel onlineNearbyDrivers = OnlineNearbyDriversModel();
+            onlineNearbyDrivers.uidDriver = driverEvent["key"];
+            onlineNearbyDrivers.latDriver = driverEvent["latitude"];
+            onlineNearbyDrivers.lngDriver = driverEvent["longitude"];
+            manageDriverMethods.nearbyOnlineDriversList.add(onlineNearbyDrivers);
+
+            if(nearbyOnlineDriversKeysLoaded == true) {
+              // update driver location on map
+              updateAvailableNearbyOnlineDriverOnMap();
+            }
+            break;
+
+            /// when the driver leaves the radius of the user, we remove the driver from the list
+          case Geofire.onKeyExited:
+            // the driver key is the driver id
+            manageDriverMethods.removeDriverFromList(driverEvent["key"]);
+
+            updateAvailableNearbyOnlineDriverOnMap();
+            break;
+
+            /// when the driver moves WITHIN the radius, this event is fired
+          case Geofire.onKeyMoved:
+            OnlineNearbyDriversModel onlineNearbyDrivers = OnlineNearbyDriversModel();
+            onlineNearbyDrivers.uidDriver = driverEvent["key"];
+            onlineNearbyDrivers.latDriver = driverEvent["latitude"];
+            onlineNearbyDrivers.lngDriver = driverEvent["longitude"];
+            manageDriverMethods.updateOnlineNearbyDriversLocation(onlineNearbyDrivers);
+
+            updateAvailableNearbyOnlineDriverOnMap();
+            break;
+
+            /// the first time the user open the app, this displays the oline drivers
+          case Geofire.onGeoQueryReady:
+            nearbyOnlineDriversKeysLoaded = true;
+
+            // update driver on google map
+            updateAvailableNearbyOnlineDriverOnMap();
+            break;
+        }
+      }
+    });
+
   }
 
 
 
   @override
   Widget build(BuildContext context) {
+
+    makeDriverNearbyCarIcon();
+
     return Scaffold(
       key: sKey,
+
       /// drawer widget
       drawer: Container(
         width: 255,
@@ -450,6 +569,7 @@ class _homePageState extends State<homePage>
             },
           ),
 
+
           /// drawer button
           Positioned(
             top: 40,
@@ -486,6 +606,7 @@ class _homePageState extends State<homePage>
               ),
             ),
           ),
+
 
           /// search/home/work button
           Positioned(
