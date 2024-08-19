@@ -1,7 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:uber_app_drivers_app/pages/home_page.dart';
 import 'authentication/login_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 
 Future <void> main() async
@@ -25,6 +27,14 @@ Future <void> main() async
     }
   });
 
+  await Permission.notification.isDenied.then((valueOfPermission)
+  {
+    if(valueOfPermission)
+    {
+      Permission.notification.request();
+    }
+  });
+
   runApp(const MyApp());
 }
 
@@ -41,7 +51,7 @@ class MyApp extends StatelessWidget
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.black,
       ),
-      home: LoginScreen(),
+      home: FirebaseAuth.instance.currentUser == null ? LoginScreen() :HomePage(),
     );
   }
 }
