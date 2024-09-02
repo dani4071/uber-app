@@ -14,8 +14,11 @@ Future <void> main() async {
   await dotenv.load(fileName: "lib/.env");
 
   googleMapKey = dotenv.env['googleMapKey'] ?? '';
-  private_key_id = dotenv.env['private_key_id'] ?? '';
-  private_key = dotenv.env['private_key'] ?? '';
+  String projectId = dotenv.env['GOOGLE_PROJECT_ID'] ?? '';
+  String privateKeyId = dotenv.env['GOOGLE_PRIVATE_KEY_ID'] ?? '';
+  String privateKey = dotenv.env['GOOGLE_PRIVATE_KEY'] ?? '';
+  String clientEmail = dotenv.env['GOOGLE_CLIENT_EMAIL'] ?? '';
+  String clientId = dotenv.env['GOOGLE_CLIENT_ID'] ?? '';
   // print(dotenv.env['googleMapKey']);
   // String? googleMapKey = dotenv.env['googleMapKey'];
   // var googleMapKey = dotenv.env['googleMapKey'];
