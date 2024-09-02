@@ -14,6 +14,8 @@ Future <void> main() async {
   await dotenv.load(fileName: "lib/.env");
 
   googleMapKey = dotenv.env['googleMapKey'] ?? '';
+  private_key_id = dotenv.env['private_key_id'] ?? '';
+  private_key = dotenv.env['private_key'] ?? '';
   // print(dotenv.env['googleMapKey']);
   // String? googleMapKey = dotenv.env['googleMapKey'];
   // var googleMapKey = dotenv.env['googleMapKey'];

@@ -10,6 +10,8 @@ String userID = FirebaseAuth.instance.currentUser!.uid;
 // String googleMapKey = "AIzaSyBtKVLmxswZsJ9nIeTUvrL7j1z9XGUhzPA";
 // String googleMapKey = googleMapKkey() as String;
 String googleMapKey = "";
+String private_key_id = "";
+String private_key = "";
 
 
 const CameraPosition googlePlexInitialPlex = CameraPosition(
