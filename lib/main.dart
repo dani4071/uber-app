@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:uber_app_clone/app_info/app_info.dart';
 import 'package:uber_app_clone/authentication/login_screen.dart';
+import 'package:uber_app_clone/global/global_variables.dart';
 import 'package:uber_app_clone/pages/home_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 Future <void> main() async {
 
+  await dotenv.load(fileName: "lib/.env");
+
+  googleMapKey = dotenv.env['googleMapKey'] ?? '';
+  // print(dotenv.env['googleMapKey']);
+  // String? googleMapKey = dotenv.env['googleMapKey'];
+  // var googleMapKey = dotenv.env['googleMapKey'];
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
@@ -30,10 +38,12 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+
     return ChangeNotifierProvider(
       create: (context) => AppInfo(),
       child: MaterialApp(
         title: 'User App',
+
         debugShowCheckedModeBanner: false,
         theme: ThemeData.dark().copyWith(
           scaffoldBackgroundColor: Colors.white,

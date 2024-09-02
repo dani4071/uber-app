@@ -6,6 +6,8 @@ import 'package:uber_app_clone/methods/common_methods.dart';
 import 'package:uber_app_clone/models/address_model.dart';
 import 'package:uber_app_clone/models/prediction_model.dart';
 import 'package:uber_app_clone/widgets/loading_dialog.dart';
+import 'package:uber_app_clone/main.dart';
+import 'package:uber_app_clone/main.dart';
 
 class predictionPlaceUi extends StatefulWidget {
 

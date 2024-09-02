@@ -681,8 +681,8 @@ class _homePageState extends State<homePage>
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const Text(
-                              "Profile",
+                          Text("1",
+                            // googleMapKey,
                             style: TextStyle(
                               color: Colors.white,
                             ),

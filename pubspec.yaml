@@ -70,6 +70,7 @@ dev_dependencies:
   restart_app:
   googleapis:
   googleapis_auth:
+  flutter_dotenv: ^5.1.0
 
 
 
@@ -89,6 +90,7 @@ flutter:
     - assets/
     - assets/logoo.png
     - theme/map/
+    - lib/.env
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
