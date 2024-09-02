@@ -95,6 +95,7 @@ class CommonMethods
       model.humanReadableAddress = humanReadableAddress;
       model.longitudePosition = position.longitude;
       model.latitudePosition = position.latitude;
+      model.placeName = humanReadableAddress;
 
       /// provider over here was used to share the model so we can use them else where in my understanding
       /// we shared this model with the help of our provider

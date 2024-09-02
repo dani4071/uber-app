@@ -45,6 +45,11 @@ dependencies:
   geolocator: any
   connectivity_plus: any
   http: any
+  flutter_polyline_points: any
+  loading_animation_widget: any
+  flutter_geofire: any
+  googleapis_auth: any
+  restart_app: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -62,9 +67,9 @@ dev_dependencies:
   firebase_storage:
   geolocator:
   provider:
-  flutter_polyline_points:
-  loading_animation_widget:
-  flutter_geofire:
+  restart_app:
+  googleapis:
+  googleapis_auth:
 
 
 

@@ -7,10 +7,15 @@ class manageDriverMethods {
   static void removeDriverFromList(String driverId) {
     int index = nearbyOnlineDriversList.indexWhere((driver) => driver.uidDriver == driverId);
 
-    if(nearbyOnlineDriversList.length > 0) {
-      nearbyOnlineDriversList.removeAt(index);
-    }
+  //   if(nearbyOnlineDriversList.isNotEmpty) {
+  //     nearbyOnlineDriversList.removeAt(index);
+  //   }
+  // }
+
+  if(nearbyOnlineDriversList.isNotEmpty) {
+  nearbyOnlineDriversList.removeAt(index);
   }
+}
 
 
   static void updateOnlineNearbyDriversLocation(OnlineNearbyDriversModel nearbyOnlineDriverInformation) {

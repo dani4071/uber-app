@@ -82,6 +82,7 @@ class _loginScreenState extends State<loginScreen>
           if((snap.snapshot.value as Map)["blockStatus"] == "no")
           {
             userName = (snap.snapshot.value as Map)["name"];
+            userPhone = (snap.snapshot.value as Map)["phone"];
             Navigator.push(context, MaterialPageRoute(builder: (c)=> const homePage()));
           }
           else

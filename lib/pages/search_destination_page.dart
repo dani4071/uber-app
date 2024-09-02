@@ -4,7 +4,6 @@ import 'package:uber_app_clone/app_info/app_info.dart';
 import 'package:uber_app_clone/global/global_variables.dart';
 import 'package:uber_app_clone/methods/common_methods.dart';
 import 'package:uber_app_clone/models/prediction_model.dart';
-import 'package:uber_app_clone/widgets/loading_dialog.dart';
 import 'package:uber_app_clone/widgets/prediction_place_ui.dart';
 
 

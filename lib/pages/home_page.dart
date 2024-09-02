@@ -11,15 +11,16 @@ import 'package:geolocator/geolocator.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uber_app_clone/global/trip_var.dart';
+import 'package:uber_app_clone/methods/push_notification_service.dart';
 import 'package:uber_app_clone/models/direction_details_model.dart';
 import 'package:uber_app_clone/models/online_nearby_drivers_model.dart';
 import 'package:uber_app_clone/pages/search_destination_page.dart';
+import 'package:uber_app_clone/widgets/info_dialog.dart';
 import 'package:uber_app_clone/widgets/loading_dialog.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import '../methods/common_methods.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:flutter_geofire/flutter_geofire.dart';
-
 import '../methods/manage_drivers_methods.dart';
 
 
@@ -56,6 +57,12 @@ class _homePageState extends State<homePage>
   String stateOfApp = "normal";
   bool nearbyOnlineDriversKeysLoaded = false;
   BitmapDescriptor? carIconNearbyDriver;
+  DatabaseReference? tripReferenceRef;
+  List<OnlineNearbyDriversModel>? availableNearbyOnlineDriversList;
+
+
+
+  /// check the audio and check the time out
 
 
   /// driver icon on map
@@ -63,7 +70,7 @@ class _homePageState extends State<homePage>
   makeDriverNearbyCarIcon()
   {
     if(carIconNearbyDriver == null) {
-      ImageConfiguration configuration = createLocalImageConfiguration(context, size: Size(0.5, 0.5));
+      ImageConfiguration configuration = createLocalImageConfiguration(context, size: const Size(0.5, 0.5));
       BitmapDescriptor.fromAssetImage(configuration, "assets/tracking.png").then((iconImage){
         carIconNearbyDriver = iconImage;
       });
@@ -124,6 +131,7 @@ class _homePageState extends State<homePage>
         {
           setState(() {
             userName = (snap.snapshot.value as Map)["name"];
+            userPhone = (snap.snapshot.value as Map)["phone"];
           });
         }
         else
@@ -186,7 +194,7 @@ class _homePageState extends State<homePage>
     Navigator.pop(context);
 
 
-    /// this below is very easy, dont get overwhelmed, the commets explains it all
+    /// this below is very easy, dont get overwhelmed, the comments explains it all
 
 
     /// this is responsible for drawing lines on the map, polylines
@@ -200,15 +208,15 @@ class _homePageState extends State<homePage>
     /// over here we get the latlngs' and add it to our list of polylineCoOrdinate one by one.
     /// video 75 -1:03 would explain more on polylines
     if(latLngPointsFromPickToDestination.isNotEmpty){
-      latLngPointsFromPickToDestination.forEach((PointLatLng latlngPoint){
+      for (var latlngPoint in latLngPointsFromPickToDestination) {
         polylineCoOrdinates.add(LatLng(latlngPoint.latitude, latlngPoint.longitude));
-      });
+      }
     }
 
     polylineSet.clear();
     setState(() {
       Polyline polyline = Polyline(
-        polylineId: PolylineId("polylineID"),
+        polylineId: const PolylineId("polylineID"),
         color: Colors.pink,
         points: polylineCoOrdinates,
         jointType: JointType.round,
@@ -307,7 +315,6 @@ class _homePageState extends State<homePage>
   resetApp()
   {
     setState(() {
-
       polylineCoOrdinates.clear();
       polylineSet.clear();
       markerSet.clear();
@@ -327,6 +334,8 @@ class _homePageState extends State<homePage>
       carDetailsDriver = "";
       tripStatusDisplay = "Driver is Arriving";
     });
+    cMethods.displaySnackBar("No driver found", context);
+
   }
 
   displayRequestContainer()
@@ -340,27 +349,35 @@ class _homePageState extends State<homePage>
     });
 
     // send ride request
+    makeTripRequest();
   }
+
 
   cancelRideRequest()
   {
+    // remove ride request from database
+    tripReferenceRef!.remove();
+
+
     setState(() {
       stateOfApp = "normal";
     });
   }
 
-  updateAvailableNearbyOnlineDriverOnMap(){
+
+  updateAvailableNearbyOnlineDriverOnMap()
+  {
     setState(() {
       markerSet.clear();
     });
 
-    Set<Marker> markersTempSet = Set<Marker>();
+    Set<Marker> markersTempSet = <Marker>{};
 
     for(OnlineNearbyDriversModel eachOnlineNearbyDriver in manageDriverMethods.nearbyOnlineDriversList) {
       LatLng driverCurrentPosition = LatLng(eachOnlineNearbyDriver.latDriver!, eachOnlineNearbyDriver.lngDriver!);
 
       Marker driverMarker = Marker(
-        markerId: MarkerId("driver ID = " + eachOnlineNearbyDriver.uidDriver.toString()),
+        markerId: MarkerId("driver ID = ${eachOnlineNearbyDriver.uidDriver}"),
         position: driverCurrentPosition,
         icon: carIconNearbyDriver!,
       );
@@ -430,6 +447,176 @@ class _homePageState extends State<homePage>
       }
     });
 
+  }
+
+
+  makeTripRequest()
+  {
+    /// created a reference in the database by using push, also push makes it give unique id
+    tripReferenceRef = FirebaseDatabase.instance.ref().child("tripRequests").push();
+
+    var pickUpLocation = Provider.of<AppInfo>(context, listen: false).pickUpLocation;
+    var dropOffLocation = Provider.of<AppInfo>(context, listen: false).dropOffLocation;
+
+    /// user pickup lat lng
+    Map pickUpCordinatesMap =
+        {
+          "latitude": pickUpLocation!.latitudePosition.toString(),
+          "longitude": pickUpLocation.longitudePosition.toString(),
+        };
+
+    /// user dropOff lat lng
+    Map dropOffDestinationCoordinatesMap =
+        {
+          "latitude": dropOffLocation!.latitudePosition.toString(),
+          "longitude": dropOffLocation.longitudePosition.toString(),
+        };
+
+    Map driverCoordinates =
+        {
+          "latitude": "",
+          "longitude": "",
+        };
+
+    Map dataMap =
+        {
+          "tripID": tripReferenceRef!.key,
+          "publishedDateTime": DateTime.now().toString(),
+
+          "userName": userName,
+          "userPhone": userPhone,
+          "userID": userID,
+          "pickUpLatLng": pickUpCordinatesMap,
+          "dropOffLatLng": dropOffDestinationCoordinatesMap,
+          "pickUpAddress": pickUpLocation.placeName,
+          "dropOffAddress": dropOffLocation.placeName,
+
+          "driverID": "waiting",
+          "carDetails": "",
+          "driverLocation": driverCoordinates,
+          "driverName": "",
+          "driverPhone": "",
+          "driverPhoto": "",
+          "fareAmount": "",
+          "status": "new",
+        };
+
+    tripReferenceRef!.set(dataMap);
+
+  }
+
+
+  noDriverAvailable()
+  {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) => infoDialog(
+        title: "No Driver Available",
+        description: "No driver found in the nearby location. Please try again shortly",
+      )
+    );
+  }
+
+
+  searchDriver()
+  {
+    /// what this does is, it takes all the available drivers and put in a list, -
+    /// now it sends notification to the first driver -
+    /// which has the index of of 0, then if the driver -
+    /// didnt respond it removes the driver from the list -
+    /// and sends a new notification to the next one which has an index of 0 now -
+    /// video 116 - 5:50
+    if(availableNearbyOnlineDriversList!.isEmpty)
+    {
+      cancelRideRequest();
+      resetApp();
+      noDriverAvailable();
+      return;
+    }
+
+    var currentDriver = availableNearbyOnlineDriversList![0];
+
+
+    // send notification to this current driver - current driver simply means selected driver
+    sendNotificationToDriver(currentDriver);
+
+    availableNearbyOnlineDriversList!.removeAt(0);
+  }
+
+
+  sendNotificationToDriver(OnlineNearbyDriversModel currentDriver)
+  {
+    /// update driver's newTripStatus - assign tripID to current driver
+    DatabaseReference currentDriverRef = FirebaseDatabase.instance
+        .ref()
+        .child("drivers")
+        .child(currentDriver.uidDriver.toString())
+        .child("newTripStatus");
+    
+    currentDriverRef.set(tripReferenceRef!.key);
+
+
+    /// get current driver device recognition token, its this token that we can use to send notification
+    DatabaseReference tokenOfCurrentDriverRef =  FirebaseDatabase.instance
+        .ref()
+        .child("drivers")
+        .child(currentDriver.uidDriver.toString())
+        .child("deviceToken");
+
+    /// once we get the token, i think this "once" here means that once we get it
+    tokenOfCurrentDriverRef.once().then((dataSnapshot) {
+
+      if(dataSnapshot.snapshot.value != null) {
+        String deviceToken = dataSnapshot.snapshot.value.toString();
+
+        /// send notification
+        PushNotificationService.sendNotificationToSelectedDriver(deviceToken, context, tripReferenceRef!.key.toString());
+
+      }
+      else
+      {
+        return;
+      }
+
+      const oneTickPerSecond = Duration(seconds: 1);
+
+      var itemCountDown = Timer.periodic(oneTickPerSecond, (timer){
+
+        requestTimeOutDriver = requestTimeOutDriver - 1;
+
+        //when trip request is not requesting means trip request cancelled - stop timer
+        if(stateOfApp != "requesting"){
+          timer.cancel();
+          currentDriverRef.set("cancelled");
+          currentDriverRef.onDisconnect();
+          requestTimeOutDriver = 20;
+        }
+
+        // when trip request is accepted by online nearest available driver
+        currentDriverRef.onValue.listen((dataSnapshot){
+          if(dataSnapshot.snapshot.value.toString() == "accepted"){
+            timer.cancel();
+            currentDriverRef.onDisconnect();
+            requestTimeOutDriver = 20;
+          }
+        });
+
+
+        // if 20 seconds passed - send notification to the next nearest online available driver
+        if(requestTimeOutDriver == 0){
+          currentDriverRef.set("timeout");
+          timer.cancel();
+          currentDriverRef.onDisconnect();
+          requestTimeOutDriver == 20;
+
+          // send notification to the next nearest online available driver
+          searchDriver();
+        }
+
+
+      });
+    });
   }
 
 
@@ -697,13 +884,13 @@ class _homePageState extends State<homePage>
                 ],
               ),
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 18),
+                padding: const EdgeInsets.symmetric(vertical: 18),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
 
                     Padding(
-                      padding: EdgeInsets.only(left: 16, right: 16),
+                      padding: const EdgeInsets.only(left: 16, right: 16),
                       child: SizedBox(
                         height: 200,
                         child: Card(
@@ -753,8 +940,11 @@ class _homePageState extends State<homePage>
                                       displayRequestContainer();
 
                                       // get nearest available online driver
+                                      availableNearbyOnlineDriversList = manageDriverMethods.nearbyOnlineDriversList;
 
                                       // search driver
+                                      searchDriver();
+
                                     },
                                     child: Image.asset(
                                       "assets/uberexec.png",
@@ -809,11 +999,11 @@ class _homePageState extends State<homePage>
                 ]
               ),
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    SizedBox(height: 12,),
+                    const SizedBox(height: 12,),
                     SizedBox(
                       width: 200,
                       child: LoadingAnimationWidget.flickr(
@@ -823,7 +1013,7 @@ class _homePageState extends State<homePage>
                       ),
                     ),
 
-                    SizedBox(height: 20,),
+                    const SizedBox(height: 20,),
 
                     GestureDetector(
                       onTap: (){

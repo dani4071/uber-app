@@ -67,7 +67,7 @@ class _predictionPlaceUiState extends State<predictionPlaceUi> {
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder()
+        shape: const RoundedRectangleBorder()
       ),
       child: SizedBox(
         child: Column(
