@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -23,7 +22,7 @@ class _HomePageState extends State<HomePage>
 {
   final Completer<GoogleMapController> googleMapCompleterController = Completer<GoogleMapController>();
   GoogleMapController? controllerGoogleMap;
-  Position? currentPositionOfUser;
+  Position? currentPositionOfDriver;
   Color colorToShow = Colors.green;
   String textToShow = "GO ONLINE NOW";
   bool isDriverAvailable = false;
@@ -50,9 +49,11 @@ class _HomePageState extends State<HomePage>
   getCurrentLiveLocationOfDriver() async
   {
     Position positionOfUser = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.bestForNavigation);
-    currentPositionOfUser = positionOfUser;
+    currentPositionOfDriver = positionOfUser;
+    /// this is for the global variable || section33 video 119
+    driverCurrentPosition = currentPositionOfDriver;
 
-    LatLng positionOfUserInLatLng = LatLng(currentPositionOfUser!.latitude, currentPositionOfUser!.longitude);
+    LatLng positionOfUserInLatLng = LatLng(currentPositionOfDriver!.latitude, currentPositionOfDriver!.longitude);
 
     CameraPosition cameraPosition = CameraPosition(target: positionOfUserInLatLng, zoom: 15);
     controllerGoogleMap!.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
@@ -83,8 +84,8 @@ class _HomePageState extends State<HomePage>
     /// gets driver unique id and live location
     Geofire.setLocation(
       FirebaseAuth.instance.currentUser!.uid,
-      currentPositionOfUser!.latitude,
-      currentPositionOfUser!.longitude,
+      currentPositionOfDriver!.latitude,
+      currentPositionOfDriver!.longitude,
     );
 
     /// make a reference to the drivers and add a new key newTripStatus
@@ -103,26 +104,26 @@ class _HomePageState extends State<HomePage>
 
   setAndGetLocationUpdate()
   {
-    /// with the help of this streamSubscription we are getting the driver location
-    Geolocator.getPositionStream()
+    /// with the help of this streamSubscription we are getting the driver live location ||section 25 video 87
+    positionStreamHomePage = Geolocator.getPositionStream()
         .listen((Position position){
 
           /// the update comes inside our position above then we assign it to our currentPositionOfUsers down here
-          currentPositionOfUser = position;
+          currentPositionOfDriver = position;
 
           /// once the driver location is true(meaning driver is online) then we set and start sharing the location
           if(isDriverAvailable == true){
             Geofire.setLocation(
               FirebaseAuth.instance.currentUser!.uid,
-              currentPositionOfUser!.latitude,
-              currentPositionOfUser!.longitude,
+              currentPositionOfDriver!.latitude,
+              currentPositionOfDriver!.longitude,
             );
           }
 
           /// we want to display the live new location on our google map, the code below
           LatLng positionLatLng = LatLng(
-              currentPositionOfUser!.latitude,
-              currentPositionOfUser!.longitude
+              currentPositionOfDriver!.latitude,
+              currentPositionOfDriver!.longitude
           );
           /// we animate the camera to the new position
           controllerGoogleMap!.animateCamera(CameraUpdate.newLatLng(positionLatLng));
@@ -133,16 +134,19 @@ class _HomePageState extends State<HomePage>
   {
     PushNotificationSystem notificationSystem = PushNotificationSystem();
     notificationSystem.generateDeviceRegistrationToken();
-    notificationSystem.startListeningForNewNotification();
+    notificationSystem.startListeningForNewNotification(context);
   }
 
 
   @override
   void initState() {
     super.initState();
-
     initializePushNotification();
   }
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -167,7 +171,7 @@ class _HomePageState extends State<HomePage>
             },
           ),
 
-
+          
           Container(
             height: 136,
             width: double.infinity,

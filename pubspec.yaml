@@ -36,6 +36,18 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
 
+  firebase_auth: any
+  firebase_database: any
+  firebase_storage: any
+  image_picker: any
+  geolocator: any
+  google_maps_flutter: any
+  assets_audio_player: any
+  firebase_core: any
+  permission_handler: any
+  connectivity_plus: any
+  flutter_geofire: any
+  firebase_messaging: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -48,7 +60,6 @@ dev_dependencies:
   flutter_lints: ^3.0.0
   image_picker:
   connectivity_plus: ^6.0.0
-  firebase_auth:
   firebase_core:
   cloud_firestore:
   firebase_database:
@@ -56,8 +67,7 @@ dev_dependencies:
   google_maps_flutter:
   permission_handler:
   geolocator:
-  flutter_geofire:
-  firebase_messaging:
+  assets_audio_player:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -74,6 +84,7 @@ flutter:
   assets:
     - assets/images/
     - theme/map/
+    - assets/audio/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

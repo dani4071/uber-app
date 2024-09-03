@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:uber_app_drivers_app/authentication/signup_screen.dart';
-import 'package:uber_app_drivers_app/pages/home_page.dart';
 import '../global/global_var.dart';
 import '../methods/common_methods.dart';
 import '../pages/dashboard.dart';
@@ -82,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen>
           if((snap.snapshot.value as Map)["blockStatus"] == "no")
           {
             userName = (snap.snapshot.value as Map)["name"];
-            Navigator.push(context, MaterialPageRoute(builder: (c)=> Dashboard()));
+            Navigator.push(context, MaterialPageRoute(builder: (c)=> const Dashboard()));
           }
           else
           {
@@ -194,10 +193,10 @@ class _LoginScreenState extends State<LoginScreen>
               TextButton(
                 onPressed: ()
                 {
-                  Navigator.push(context, MaterialPageRoute(builder: (c)=> SignUpScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (c)=> const SignUpScreen()));
                 },
                 child: const Text(
-                  "Don\'t have an Account? Register Here",
+                  "Don't have an Account? Register Here",
                   style: TextStyle(
                     color: Colors.grey,
                   ),

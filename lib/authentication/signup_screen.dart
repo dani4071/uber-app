@@ -145,7 +145,7 @@ class _SignUpScreenState extends State<SignUpScreen>
     };
     usersRef.set(driverDataMap);
 
-    Navigator.push(context, MaterialPageRoute(builder: (c)=> Dashboard()));
+    Navigator.push(context, MaterialPageRoute(builder: (c)=> const Dashboard()));
   }
 
   chooseImageFromGallery() async
@@ -363,7 +363,7 @@ class _SignUpScreenState extends State<SignUpScreen>
               TextButton(
                 onPressed: ()
                 {
-                  Navigator.push(context, MaterialPageRoute(builder: (c)=> LoginScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (c)=> const LoginScreen()));
                 },
                 child: const Text(
                   "Already have an Account? Login Here",
