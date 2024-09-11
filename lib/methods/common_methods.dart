@@ -26,7 +26,6 @@
 // }
 
 import 'dart:convert';
-
 import 'package:geolocator/geolocator.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
@@ -36,7 +35,6 @@ import 'package:uber_app_clone/global/global_variables.dart';
 import 'package:http/http.dart' as http;
 import 'package:uber_app_clone/models/address_model.dart';
 import 'package:provider/provider.dart';
-
 import '../models/direction_details_model.dart';
 
 

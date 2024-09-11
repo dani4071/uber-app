@@ -11,17 +11,16 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 Future <void> main() async {
 
-  await dotenv.load(fileName: "lib/.env");
 
-  googleMapKey = dotenv.env['googleMapKey'] ?? '';
-  String projectId = dotenv.env['GOOGLE_PROJECT_ID'] ?? '';
-  String privateKeyId = dotenv.env['GOOGLE_PRIVATE_KEY_ID'] ?? '';
-  String privateKey = dotenv.env['GOOGLE_PRIVATE_KEY'] ?? '';
-  String clientEmail = dotenv.env['GOOGLE_CLIENT_EMAIL'] ?? '';
-  String clientId = dotenv.env['GOOGLE_CLIENT_ID'] ?? '';
-  // print(dotenv.env['googleMapKey']);
-  // String? googleMapKey = dotenv.env['googleMapKey'];
-  // var googleMapKey = dotenv.env['googleMapKey'];
+  /// learn more about .env, a file type that allows you to hide secrets
+  // await dotenv.load(fileName: "lib/.env");
+  //
+  // // googleMapKey = dotenv.env['googleMapKey'] ?? '';
+  // String projectId = dotenv.env['GOOGLE_PROJECT_ID'] ?? '';
+  // String privateKeyId = dotenv.env['GOOGLE_PRIVATE_KEY_ID'] ?? '';
+  // String privateKey = dotenv.env['GOOGLE_PRIVATE_KEY'] ?? '';
+  // String clientEmail = dotenv.env['GOOGLE_CLIENT_EMAIL'] ?? '';
+  // String clientId = dotenv.env['GOOGLE_CLIENT_ID'] ?? '';
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 

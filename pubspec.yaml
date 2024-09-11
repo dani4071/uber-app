@@ -71,6 +71,7 @@ dev_dependencies:
   googleapis:
   googleapis_auth:
   flutter_dotenv: ^5.1.0
+  url_launcher:
 
 
 

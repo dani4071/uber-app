@@ -7,14 +7,14 @@ String userName = "";
 String userPhone = "";
 String userID = FirebaseAuth.instance.currentUser!.uid;
 //// create a new api, go to console.google, api librabry, crendentials, on the top click +create credentials,Api then use that one
-// String googleMapKey = "AIzaSyBtKVLmxswZsJ9nIeTUvrL7j1z9XGUhzPA";
+String googleMapKey = "AIzaSyBtKVLmxswZsJ9nIeTUvrL7j1z9XGUhzPA";
 // String googleMapKey = googleMapKkey() as String;
-String googleMapKey = "";
-String projectId = '';
-String privateKeyId = '';
-String privateKey = '';
-String clientEmail ='';
-String clientId = '';
+// String googleMapKey = "";
+// String projectId = '';
+// String privateKeyId = '';
+// String privateKey = '';
+// String clientEmail ='';
+// String clientId = '';
 
 
 const CameraPosition googlePlexInitialPlex = CameraPosition(
