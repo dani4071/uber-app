@@ -1,14 +1,15 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:uber_app_drivers_app/methods/map_theme_method.dart';
 import 'package:uber_app_drivers_app/push_notification/push_notification_system.dart';
 import '../global/global_var.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_geofire/flutter_geofire.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -27,24 +28,7 @@ class _HomePageState extends State<HomePage>
   String textToShow = "GO ONLINE NOW";
   bool isDriverAvailable = false;
   DatabaseReference? newTripRequestReference;
-
-
-  void updateMapTheme(GoogleMapController controller)
-  {
-    getJsonFileFromThemes("theme/map/night_style.json").then((value)=> setGoogleMapStyle(value, controller));
-  }
-
-  Future<String> getJsonFileFromThemes(String mapStylePath) async
-  {
-    ByteData byteData = await rootBundle.load(mapStylePath);
-    var list = byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes);
-    return utf8.decode(list);
-  }
-
-  setGoogleMapStyle(String googleMapStyle, GoogleMapController controller)
-  {
-    controller.setMapStyle(googleMapStyle);
-  }
+  MapThemeMethod mpMethod = MapThemeMethod();
 
   getCurrentLiveLocationOfDriver() async
   {
@@ -137,16 +121,33 @@ class _HomePageState extends State<HomePage>
     notificationSystem.startListeningForNewNotification(context);
   }
 
+  retrieveCurrentDriverInfo() async
+  {
+    await FirebaseDatabase.instance.ref()
+        .child("drivers")
+        .child(FirebaseAuth.instance.currentUser!.uid)
+        .once().then((snap){
 
-  @override
-  void initState() {
-    super.initState();
+      driverName = (snap.snapshot.value as Map)["name"];
+      driverPhone = (snap.snapshot.value as Map)["phone"];
+      driverPhoto = (snap.snapshot.value as Map)["photo"];
+      carColor = (snap.snapshot.value as Map)["car_details"]["carColor"];
+      carModel = (snap.snapshot.value as Map)["car_details"]["carModel"];
+      carNumber = (snap.snapshot.value as Map)["car_details"]["carNumber"];
+    });
+
+
+
     initializePushNotification();
   }
 
 
+  @override
+  void initState() {
+    super.initState();
 
-
+    retrieveCurrentDriverInfo();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -163,7 +164,8 @@ class _HomePageState extends State<HomePage>
             onMapCreated: (GoogleMapController mapController)
             {
               controllerGoogleMap = mapController;
-              updateMapTheme(controllerGoogleMap!);
+              // updateMapTheme(controllerGoogleMap!);
+              mpMethod.updateMapTheme(controllerGoogleMap!);
 
               googleMapCompleterController.complete(controllerGoogleMap);
 

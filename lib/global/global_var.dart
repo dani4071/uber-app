@@ -5,6 +5,7 @@ import 'package:assets_audio_player/assets_audio_player.dart';
 
 String userName = "";
 
+
 String googleMapKey = "AIzaSyBtKVLmxswZsJ9nIeTUvrL7j1z9XGUhzPA";
 
 const CameraPosition googlePlexInitialPosition = CameraPosition(
@@ -14,9 +15,18 @@ const CameraPosition googlePlexInitialPosition = CameraPosition(
 
 
 StreamSubscription<Position>? positionStreamHomePage;
+StreamSubscription<Position>? positionStreamNewTripPage;
 
 int driverTripRequestTimeout = 20;
 
 final audioPlayer = AssetsAudioPlayer();
 
 Position? driverCurrentPosition;
+
+
+String driverName = "";
+String driverPhone = "";
+String driverPhoto = "";
+String carColor = "";
+String carModel = "";
+String carNumber = "";

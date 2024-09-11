@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:uber_app_drivers_app/pages/dashboard.dart';
 import 'package:uber_app_drivers_app/pages/home_page.dart';
 import 'authentication/login_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -51,7 +52,7 @@ class MyApp extends StatelessWidget
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.black,
       ),
-      home: FirebaseAuth.instance.currentUser == null ? const LoginScreen() :const HomePage(),
+      home: FirebaseAuth.instance.currentUser == null ? const LoginScreen() :const Dashboard(),
     );
   }
 }

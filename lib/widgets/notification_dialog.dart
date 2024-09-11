@@ -91,7 +91,7 @@ class _notificationDialogState extends State<notificationDialog> {
         cMethods.turnOffLocationUpdateForHomePage();
         cMethods.displaySnackBar("i worked hereeeeee", context);
 
-        Navigator.push(context, MaterialPageRoute(builder: (c)=> newTripPage(tripDetails: widget.tripDetailsInfo)));
+        Navigator.push(context, MaterialPageRoute(builder: (c)=> newTripPage(newTripDetailsInfo: widget.tripDetailsInfo)));
 
       } else if (newTripStatusValue == 'cancelled') {
         cMethods.displaySnackBar(

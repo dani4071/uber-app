@@ -68,6 +68,10 @@ dev_dependencies:
   permission_handler:
   geolocator:
   assets_audio_player:
+  http:
+  flutter_polyline_points:
+  url_launcher:
+  restart_app:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
